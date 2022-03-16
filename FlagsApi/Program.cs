@@ -1,3 +1,4 @@
+using FlagsApi.Constants;
 using FlagsApi.Data;
 using FlagsApi.Models;
 using FlagsApi.Repositories;
@@ -5,46 +6,38 @@ using FlagsApi.Repositories.Implementations;
 using FlagsApi.Services;
 using FlagsApi.Services.Contracts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Web;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Text;
+using System.Security.Claims;
 
 var _corsPolicy = "CorsPolicy";
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Data
-builder.Services.AddDbContext<ApplicationDbContext>(options => 
-    options.UseSqlServer(builder.Configuration.GetConnectionString("LocalDb")));
-
-// Identity
-builder.Services.AddIdentity<User, IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
+builder.Services.AddDbContext<ApplicationContext>(options => 
+    options.UseSqlServer(builder.Configuration.GetConnectionString("ApplicationDb")));
+builder.Services.AddDbContext<UserStoreContext>(options => 
+    options.UseSqlServer(builder.Configuration.GetConnectionString("UserStoreDb")));
 
 // Authentication
 builder.Services.AddAuthentication(options =>
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     })
     .AddJwtBearer(options =>
     {
-        options.SaveToken = true;
+        options.Authority = "https://localhost:7257";
+        options.Audience = "flagsApi";
         options.RequireHttpsMetadata = false;
-        options.TokenValidationParameters = new TokenValidationParameters()
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidIssuer = builder.Configuration["JWT:ValidIssuer"],
-            ValidAudience = builder.Configuration["JWT:ValidAudience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]))
-        };
     });
+
+// Authorization
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Policies.Viewer, policy => policy.RequireClaim("scope", "flagsApi.read"));
+    options.AddPolicy(Policies.Admin, policy => policy.RequireClaim(ClaimTypes.Role, Roles.Admin));
+});
 
 // CORS
 builder.Services.AddCors(opt =>
@@ -63,13 +56,15 @@ builder.Services.AddAutoMapper(typeof(Program));
 // Repositories
 builder.Services.AddTransient<IRepositoryBase<Country>, CountryRepository>();
 builder.Services.AddTransient<IRepositoryBase<User>, UserRepository>();
+builder.Services.AddTransient<IRepositoryBase<UserCountry>, UserCountryRepository>();
 
 // Services
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {

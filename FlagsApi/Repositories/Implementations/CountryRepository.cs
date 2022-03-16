@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlagsApi.Repositories.Implementations
 {
-    public class CountryRepository : RepositoryBase<Country>
+    public class CountryRepository : RepositoryBase<Country, ApplicationContext>
     {
-        public CountryRepository(ApplicationDbContext context) : base(context) { }
+        public CountryRepository(ApplicationContext context) : base(context) { }
     }
 }

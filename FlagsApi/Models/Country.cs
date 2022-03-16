@@ -12,7 +12,5 @@ namespace FlagsApi.Models
 
         [Required]
         public string FlagLink { get; set; } = "";
-
-        public ICollection<User> Users { get; set; } = new List<User>();
     }
 }

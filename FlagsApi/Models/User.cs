@@ -2,8 +2,10 @@
 
 namespace FlagsApi.Models
 {
-    public class User : IdentityUser
-    {
-        public ICollection<Country> Countries { get; set; } = new List<Country>();
+    public class User : IdentityUser 
+    { 
+        public string FirstName { get; set; } = string.Empty;
+
+        public string LastName { get; set; } = string.Empty;
     }
 }

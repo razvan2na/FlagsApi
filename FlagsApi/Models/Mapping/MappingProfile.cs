@@ -11,6 +11,7 @@ namespace FlagsApi.Models.Mapping
                 .ReverseMap();
 
             CreateMap<User, UserDto>()
+                .ForMember(dest => dest.FullName, map => map.MapFrom(src => $"{src.FirstName} {src.LastName}"))
                 .ReverseMap();
         }
     }

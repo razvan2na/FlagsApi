@@ -1,4 +1,6 @@
-﻿using FlagsApi.Models;
+﻿using AutoMapper;
+using FlagsApi.Dtos;
+using FlagsApi.Models;
 using FlagsApi.Repositories;
 using FlagsApi.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -8,10 +10,21 @@ namespace FlagsApi.Services
     public class UserService : IUserService
     {
         private readonly IRepositoryBase<User> _userRepository;
+        private readonly IRepositoryBase<Country> _countryRepository;
+        private readonly IRepositoryBase<UserCountry> _userCountryRepository;
+        private readonly IMapper _mapper;
 
-        public UserService(IRepositoryBase<User> userRepository)
+        public UserService(
+            IRepositoryBase<User> userRepository, 
+            IRepositoryBase<Country> countryRepository,
+            IRepositoryBase<UserCountry> userCountryRepository,
+            IMapper mapper
+        )
         {
             _userRepository = userRepository;
+            _countryRepository = countryRepository;
+            _userCountryRepository = userCountryRepository;
+            _mapper = mapper;
         }
 
         public async Task<IEnumerable<User>> GetUsers()
@@ -23,24 +36,50 @@ namespace FlagsApi.Services
         {
             return await _userRepository
                 .Get(user => user.Email == email)
-                .Include(user => user.Countries)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<UserDto> GetUserDto(User user)
+        {
+            var dto = _mapper.Map<UserDto>(user);
+
+            var userCountries = await _userCountryRepository
+                .Get(uc => uc.UserId == user.Id)
+                .ToListAsync();
+
+            var countries = userCountries
+                .Select(uc => _countryRepository.Get(country => country.Code == uc.CountryCode).FirstOrDefault());
+
+            dto.Countries = _mapper.Map<IEnumerable<CountryDto>>(countries);
+
+            return dto;
         }
 
         public async Task AddCountryToUser(User user, Country country)
         {
-            user.Countries.Add(country);
+            _userCountryRepository.Add(new UserCountry
+            {
+                UserId = user.Id,
+                CountryCode = country.Code
+            });
 
-            //_userRepository.Update(user);
-            await _userRepository.Save();
+            await _userCountryRepository.Save();
         }
 
         public async Task RemoveCountryFromUser(User user, Country country)
         {
-            user.Countries.Remove(country);
+            var userCountry = _userCountryRepository
+                .Get(uc => uc.UserId == user.Id && uc.CountryCode == country.Code)
+                .FirstOrDefault();
 
-            //_userRepository.Update(user);
-            await _userRepository.Save();
+            if (userCountry is null)
+            {
+                throw new Exception("User does not have given country linked.");
+            }
+
+            _userCountryRepository.Delete(userCountry);
+
+            await _userCountryRepository.Save();
         }
     }
 }

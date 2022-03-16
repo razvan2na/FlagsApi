@@ -4,36 +4,38 @@ using System.Linq.Expressions;
 
 namespace FlagsApi.Repositories
 {
-    public class RepositoryBase<T> : IRepositoryBase<T> where T : class
+    public class RepositoryBase<TEntity, TContext> : IRepositoryBase<TEntity> 
+        where TEntity : class
+        where TContext : DbContext
     {
-        internal ApplicationDbContext Context { get; }
+        internal TContext Context { get; }
 
-        internal RepositoryBase(ApplicationDbContext context)
+        internal RepositoryBase(TContext context)
         {
             Context = context;
         }
 
-        public IQueryable<T> Get(Expression<Func<T, bool>>? expression = null)
+        public IQueryable<TEntity> Get(Expression<Func<TEntity, bool>>? expression = null)
         {
             if (expression is null)
-                return Context.Set<T>();
+                return Context.Set<TEntity>();
 
-            return Context.Set<T>().Where(expression);
+            return Context.Set<TEntity>().Where(expression);
         }
 
-        public void Add(T entity)
+        public void Add(TEntity entity)
         {
-            Context.Set<T>().Add(entity);
+            Context.Set<TEntity>().Add(entity);
         }
 
-        public void Update(T entity)
+        public void Update(TEntity entity)
         {
-            Context.Set<T>().Update(entity);
+            Context.Set<TEntity>().Update(entity);
         }
 
-        public void Delete(T entity)
+        public void Delete(TEntity entity)
         {
-            Context.Set<T>().Remove(entity);
+            Context.Set<TEntity>().Remove(entity);
         }
 
         public async Task<int> Save()

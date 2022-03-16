@@ -2,9 +2,9 @@
 {
     public class UserDto
     {
-        public string Username { get; set; } = "";
+        public string FullName { get; set; } = string.Empty;
 
-        public string Email { get; set; } = "";
+        public string Email { get; set; } = string.Empty;
 
         public IEnumerable<CountryDto> Countries { get; set; } = new List<CountryDto>();
     }

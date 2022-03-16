@@ -3,8 +3,8 @@ using FlagsApi.Models;
 
 namespace FlagsApi.Repositories.Implementations
 {
-    public class UserRepository : RepositoryBase<User>
+    public class UserRepository : RepositoryBase<User, UserStoreContext>
     {
-        public UserRepository(ApplicationDbContext context) : base(context) { }
+        public UserRepository(UserStoreContext context) : base(context) { }
     }
 }

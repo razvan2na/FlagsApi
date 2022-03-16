@@ -11,6 +11,7 @@ namespace FlagsApi.Controllers
 {
     [ApiController]
     [Route("users")]
+    [Authorize(Policy = Policies.Viewer)]
     public class UserController : ControllerBase
     {
         private readonly ICountryService _countryService;
@@ -31,7 +32,7 @@ namespace FlagsApi.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = UserRoles.Admin)]
+        [Authorize(Policy = Policies.Admin)]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
             try
@@ -50,20 +51,10 @@ namespace FlagsApi.Controllers
         }
 
         [HttpGet("{email}")]
-        [Authorize]
         public async Task<ActionResult<UserDto>> GetUser(string email)
         {
             try
             {
-                var role = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
-                var tokenEmail = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email);
-
-                if (email != tokenEmail?.Value && role?.Value != UserRoles.Admin)
-                {
-                    _logger.LogInformation($"GET /users/{email}: Forbidden.");
-                    return Forbid();
-                }
-
                 var user = await _userService.GetUser(email);
 
                 if (user is null)
@@ -72,7 +63,16 @@ namespace FlagsApi.Controllers
                     return NotFound();
                 }
 
-                var dto = _mapper.Map<UserDto>(user);
+                var role = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
+                var id = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+
+                if (user.Id != id?.Value && role?.Value != Roles.Admin)
+                {
+                    _logger.LogInformation($"GET /users/{email}: Forbidden.");
+                    return Forbid();
+                }
+
+                var dto = await _userService.GetUserDto(user);
 
                 _logger.LogInformation($"GET /users/{email}: Sending user.");
                 return Ok(dto);
@@ -85,7 +85,7 @@ namespace FlagsApi.Controllers
         }
 
         [HttpPut("{email}/add/{code}")]
-        [Authorize(Roles = UserRoles.Admin)]
+        [Authorize(Policy = Policies.Admin)]
         public async Task<IActionResult> AddCountryToUser(string email, string code)
         {
             try
@@ -118,7 +118,7 @@ namespace FlagsApi.Controllers
         }
 
         [HttpPut("{email}/remove/{code}")]
-        [Authorize(Roles = UserRoles.Admin)]
+        [Authorize(Policy = Policies.Admin)]
         public async Task<IActionResult> RemoveCountryFromUser(string email, string code)
         {
             try

@@ -11,6 +11,7 @@ namespace FlagsApi.Controllers
 {
     [ApiController]
     [Route("countries")]
+    [Authorize(Policy = Policies.Viewer)]
     public class CountryController : ControllerBase
     {
         private readonly ICountryService _countryService;
@@ -26,11 +27,12 @@ namespace FlagsApi.Controllers
         }
 
         [HttpGet]
-        [Authorize]
         public async Task<ActionResult<IEnumerable<CountryDto>>> GetCountries()
         {
             try
             {
+                var user = HttpContext.User;
+
                 var countries = await _countryService.GetCountries();
                 var dtos = _mapper.Map<IEnumerable<CountryDto>>(countries);
 
@@ -45,7 +47,6 @@ namespace FlagsApi.Controllers
         }
 
         [HttpGet("{code}")]
-        [Authorize]
         public async Task<ActionResult<CountryDto>> GetCountry(string code)
         {
             try
@@ -71,7 +72,7 @@ namespace FlagsApi.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = UserRoles.Admin)]
+        [Authorize(Policy = Policies.Admin)]
         public async Task<IActionResult> AddCountry([FromBody] CountryDto dto)
         {
             try
@@ -91,7 +92,7 @@ namespace FlagsApi.Controllers
         }
 
         [HttpPut("{code}")]
-        [Authorize(Roles = UserRoles.Admin)]
+        [Authorize(Policy = Policies.Admin)]
         public async Task<IActionResult> UpdateCountry(string code, [FromBody] CountryDto dto)
         {
             try
@@ -123,7 +124,7 @@ namespace FlagsApi.Controllers
         }
 
         [HttpDelete("{code}")]
-        [Authorize(Roles = UserRoles.Admin)]
+        [Authorize(Policy = Policies.Admin)]
         public async Task<IActionResult> DeleteCountry(string code)
         {
             try
