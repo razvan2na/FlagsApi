@@ -50,36 +50,46 @@ namespace FlagsApi.Controllers
             }
         }
 
+        [HttpGet("my")]
+        public async Task<ActionResult<UserDto>> GetUser()
+        {
+            try
+            {
+                var email = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email);
+
+                if (email is null)
+                {
+                    return BadRequest();
+                }
+
+                var user = await _userService.GetUser(email.Value);
+                var dto = await _userService.GetUserDto(user);
+
+                _logger.LogInformation($"GET /users: Sending user.");
+                return Ok(dto);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"GET /users/: {e.Message}");
+                return Problem(e.Message);
+            }
+        }
+
         [HttpGet("{email}")]
+        [Authorize(Policy = Policies.Admin)]
         public async Task<ActionResult<UserDto>> GetUser(string email)
         {
             try
             {
                 var user = await _userService.GetUser(email);
-
-                if (user is null)
-                {
-                    _logger.LogInformation($"GET /users/{email}: User not found.");
-                    return NotFound();
-                }
-
-                var role = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
-                var id = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-
-                if (user.Id != id?.Value && role?.Value != Roles.Admin)
-                {
-                    _logger.LogInformation($"GET /users/{email}: Forbidden.");
-                    return Forbid();
-                }
-
                 var dto = await _userService.GetUserDto(user);
 
-                _logger.LogInformation($"GET /users/{email}: Sending user.");
+                _logger.LogInformation($"GET /users: Sending user.");
                 return Ok(dto);
             }
             catch (Exception e)
             {
-                _logger.LogError($"GET /users/{email}: {e.Message}");
+                _logger.LogError($"GET /users/: {e.Message}");
                 return Problem(e.Message);
             }
         }
